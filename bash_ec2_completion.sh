@@ -52,7 +52,7 @@ _ec2_completion_reload()
 	cp ${_SSH_USER_CONFIG_PATH} ${_SSH_USER_CONFIG_PATH}_bak
 
 	echo '# AWS BEGIN' >> ${_SSH_USER_CONFIG_PATH}
-	echo '# This section is created automatically at `date`' >> ${_SSH_USER_CONFIG_PATH}
+	echo '# This section is created automatically at' `date` >> ${_SSH_USER_CONFIG_PATH}
     _ec2_completion_fetch >> ${_SSH_USER_CONFIG_PATH}
 	echo '# AWS END' >> ${_SSH_USER_CONFIG_PATH}
 }
