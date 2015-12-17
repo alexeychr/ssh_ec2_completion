@@ -64,8 +64,8 @@ _ec2_completion_complete()
 	# replocess daily
 	if [[ -n $(find ${_SSH_USER_CONFIG_PATH} -mmin +${_EC2_UPDATE_INTERVAL}) ]]
 	then
-		# TODO: run asyncronously if possible
-		_ec2_completion_reload
+		# run asyncronously if possible
+		_ec2_completion_reload >/dev/null 2>/dev/null &
 	fi
 	
 	# proxy call to the default ssh completion handler
