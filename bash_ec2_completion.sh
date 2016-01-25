@@ -46,15 +46,19 @@ EOT
 # Updates the contents of ssh_config file
 _ec2_completion_reload()
 {
-	perl -0pi -e 's/# AWS BEGIN.+AWS END//sg' ${_SSH_USER_CONFIG_PATH}
-
 	rm -f ${_SSH_USER_CONFIG_PATH}_bak
+	rm -f ${_SSH_USER_CONFIG_PATH}_tmp
 	cp ${_SSH_USER_CONFIG_PATH} ${_SSH_USER_CONFIG_PATH}_bak
+	cp ${_SSH_USER_CONFIG_PATH} ${_SSH_USER_CONFIG_PATH}_tmp
 
-	echo '# AWS BEGIN' >> ${_SSH_USER_CONFIG_PATH}
-	echo '# This section is created automatically at' `date` >> ${_SSH_USER_CONFIG_PATH}
-    _ec2_completion_fetch >> ${_SSH_USER_CONFIG_PATH}
-	echo '# AWS END' >> ${_SSH_USER_CONFIG_PATH}
+	perl -0pi -e 's/# AWS BEGIN.+AWS END//sg' ${_SSH_USER_CONFIG_PATH}_tmp
+
+	echo '# AWS BEGIN' >> ${_SSH_USER_CONFIG_PATH}_tmp
+	echo '# This section is created automatically at ' `date` >> ${_SSH_USER_CONFIG_PATH}_tmp
+	_ec2_completion_fetch >> ${_SSH_USER_CONFIG_PATH}_tmp
+	echo '# AWS END' >> ${_SSH_USER_CONFIG_PATH}_tmp
+
+	mv -f ${_SSH_USER_CONFIG_PATH}_tmp ${_SSH_USER_CONFIG_PATH}
 }
 
 # Check if it is time to refresh the list of EC2 instances, and updates
