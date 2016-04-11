@@ -23,6 +23,8 @@ _EC2_DEFAULT_SSH_USER=$(whoami)
 # Reload period of EC2 instance list 
 _EC2_UPDATE_INTERVAL="1440"
 
+_EC2_DEBUG=""
+
 # Path to ssh_config file
 _SSH_USER_CONFIG_PATH="$HOME/.ssh/config"
 
@@ -43,9 +45,18 @@ EOT
 		done
 }
 
+_ec2_completion_debug()
+{
+	if [[ "${_EC2_DEBUG}" != "" ]]; then
+		echo "[`date` $$] $1" >> /tmp/_ec2_completion_debug.log;
+	fi
+}
+
 # Updates the contents of ssh_config file
 _ec2_completion_reload()
 {
+	_ec2_completion_debug "_ec2_completion_reload started"
+
 	rm -f ${_SSH_USER_CONFIG_PATH}_bak
 	rm -f ${_SSH_USER_CONFIG_PATH}_tmp
 	cp ${_SSH_USER_CONFIG_PATH} ${_SSH_USER_CONFIG_PATH}_bak
@@ -58,7 +69,25 @@ _ec2_completion_reload()
 	_ec2_completion_fetch >> ${_SSH_USER_CONFIG_PATH}_tmp
 	echo '# AWS END' >> ${_SSH_USER_CONFIG_PATH}_tmp
 
-	mv -f ${_SSH_USER_CONFIG_PATH}_tmp ${_SSH_USER_CONFIG_PATH}
+	rm -f ${_SSH_USER_CONFIG_PATH}
+	mv ${_SSH_USER_CONFIG_PATH}_tmp ${_SSH_USER_CONFIG_PATH}
+
+	_ec2_completion_debug "_ec2_completion_reload finished"
+}
+
+_ec2_completion_run()
+{
+	_ec2_completion_debug "Call _ec2_completion_run"
+	lock_dir="/tmp/_ec2_completion_reload.lock.d";
+	if mkdir $lock_dir 2>/dev/null; then
+		_ec2_completion_debug " lock acked"
+		_ec2_completion_reload >/dev/null 2>/dev/null &
+	elif [[ -n $(find $lock_dir -mmin +${_EC2_UPDATE_INTERVAL}) ]]; then
+		_ec2_completion_debug " stale lock"
+		rm -rf $lock_dir;
+	else 
+		_ec2_completion_debug " lock not acked"
+	fi
 }
 
 # Check if it is time to refresh the list of EC2 instances, and updates
@@ -66,14 +95,15 @@ _ec2_completion_reload()
 _ec2_completion_complete()
 {
 	# replocess daily
+	_ec2_completion_debug "Call _ec2_completion_complete"
 	if [[ -n $(find ${_SSH_USER_CONFIG_PATH} -mmin +${_EC2_UPDATE_INTERVAL}) ]]
 	then
-		# run asyncronously if possible
-		_ec2_completion_reload >/dev/null 2>/dev/null &
+		_ec2_completion_debug " run!"
+		_ec2_completion_run
 	fi
 	
 	# proxy call to the default ssh completion handler
-    _ssh "$@"
+	_ssh "$@"
 }
 
 # attach to ssh
