@@ -28,6 +28,8 @@ _EC2_DEBUG=""
 # Path to ssh_config file
 _SSH_USER_CONFIG_PATH="$HOME/.ssh/config"
 
+_EC2_LOCK="/tmp/_ec2_completion_reload.lock.d"
+
 # Fetches PublicIp=>InstanceName pairs and prints an ssh_config-ready text
 _ec2_completion_fetch()
 {
@@ -37,11 +39,13 @@ _ec2_completion_fetch()
 		| sed '$!N;s/\n/ /' \
 		| while read line; do \
 	    	cols=($line)
-	    	cat << EOT
+	    	if [[ "${cols[1]}" != "" ]]; then
+	    		cat << EOT
 Host ${cols[1]}
 	Hostname ${cols[0]}
 	User ${_EC2_DEFAULT_SSH_USER}
 EOT
+			fi
 		done
 }
 
@@ -72,19 +76,19 @@ _ec2_completion_reload()
 	rm -f ${_SSH_USER_CONFIG_PATH}
 	mv ${_SSH_USER_CONFIG_PATH}_tmp ${_SSH_USER_CONFIG_PATH}
 
+	rm -rf ${_EC2_LOCK};
 	_ec2_completion_debug "_ec2_completion_reload finished"
 }
 
 _ec2_completion_run()
 {
 	_ec2_completion_debug "Call _ec2_completion_run"
-	lock_dir="/tmp/_ec2_completion_reload.lock.d";
-	if mkdir $lock_dir 2>/dev/null; then
+	if mkdir ${_EC2_LOCK} 2>/dev/null; then
 		_ec2_completion_debug " lock acked"
 		_ec2_completion_reload >/dev/null 2>/dev/null &
-	elif [[ -n $(find $lock_dir -mmin +${_EC2_UPDATE_INTERVAL}) ]]; then
+	elif [[ -n $(find ${_EC2_LOCK} -mmin +${_EC2_UPDATE_INTERVAL}) ]]; then
 		_ec2_completion_debug " stale lock"
-		rm -rf $lock_dir;
+		rm -rf ${_EC2_LOCK};
 	else 
 		_ec2_completion_debug " lock not acked"
 	fi
